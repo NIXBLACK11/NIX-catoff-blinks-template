@@ -520,7 +520,23 @@ export interface I______________ {
   Name: string;
 }
 
+export interface IRouletteGame {
+  Name: string; // Name of the game
+  token: string; // Currency token used
+  wager: number; // Wager amount
+  colorChoice: "RED" | "BLUE"; // Color bet placed by player
+}
+
 export interface ______________Type {}
+
+export interface RouletteGameType {
+  id: string; // Game ID
+  name: string; // Name of the game
+  wager: number; // Amount wagered
+  token: string; // Token used for wagering
+  colorChoice: "RED" | "BLUE"; // Choice of color
+  status: "created" | "completed"; // Game status
+}
 
 export interface I______________ById {
   Name: number;

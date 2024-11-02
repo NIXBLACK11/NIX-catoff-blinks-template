@@ -2,14 +2,14 @@ import { PublicKey } from "@solana/web3.js";
 
 export const ONCHAIN_CONFIG = {
   devnet: {
-    BackendURL: "https://apiv2.catoff.xyz",
+    BackendURL: "http://localhost:3000",
     progId: new PublicKey("CATfsBsU5KLkpug5BzLK3j94Wm7mtCmdss14r4gWdbZz"),
     usdcMintAddress: new PublicKey("usdcjuyqxVrSMiXtn6oDbETAwhJLs6Q5ZxZ2qLqXg9i"),
     bonkMintAddress: new PublicKey("bonkMLw9Gyn4F3dqwxaHgcqLQxvchiYLfjDjEVXCEMf"),
     sendMintAddress: new PublicKey("send5CvJLQjEAASQjXfa1thdnDJkeMxXefZB3AMj1iF"),
     escrowAccountPublicKey: new PublicKey("CATcfUQ5wvdVFEWmky6jRoKKvCL6F4tvhXqTYQJ93eix"),
     escrowUSDCTokenAccount: new PublicKey("uk9HVP7WrFYeyQpjE3g6oJt94WT9zdaRZiG8B94m1Tk"),
-    treasuryWallet: "8PR43J5oEEvW1guBdo9tLKhLXJ2kAujT6eiFTA3XPE42",
+    treasuryWallet: "FhNZ5dafuzZLQXixkvRd2FP4XsDvmPyzaHnQwEtA1mPT",
     nodeURL: "https://api.devnet.solana.com",
     xDareServer: "https://xdares-server.catoff.xyz",
     Decimals: {

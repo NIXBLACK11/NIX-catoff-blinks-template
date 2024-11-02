@@ -9,11 +9,14 @@ import {
   I______________ById,
   IChallengeById,
   ICreateChallenge,
+  IRouletteGame,
   PARTICIPATION_TYPE,
   ResultWithError,
+  RouletteGameType,
 } from "@/common/types";
 import { ONCHAIN_CONFIG } from "@/common/helper/cluster.helper";
 import { IGenerateAIDescription } from "./apiReturn.types";
+import dbConnect from "./dbConnect";
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -163,6 +166,36 @@ export async function create______________(
   }
 }
 
+export async function createRouletteGame(
+  clusterurl: CLUSTER_TYPES,
+  rouletteGameData: IRouletteGame,
+): Promise<ResultWithError> {
+  const baseUrl = ONCHAIN_CONFIG[clusterurl].BackendURL;
+  const partnerApiKey = ONCHAIN_CONFIG[clusterurl].partnerApiKey;
+
+  try {
+    logger.info(
+      "Sending request to create roulette game at: %s with data: %o",
+      baseUrl,
+      rouletteGameData,
+    );
+    const response = await axios.post(`${baseUrl}/create-roulette-game`, rouletteGameData, {
+      headers: {
+        "x-api-key": partnerApiKey,
+        "Content-Type": "application/json",
+      },
+      timeout: 100000,
+    });
+    const result: RouletteGameType = response.data.data;
+    logger.info("Roulette game created successfully: %o", response.data);
+    return { data: result, error: null };
+  } catch (error: any) {
+    logger.error("Error creating roulette game: %s", error.stack);
+    return { data: null, error };
+  }
+}
+
+
 // Template get function
 export async function get______________ById(
   clusterurl: CLUSTER_TYPES,
@@ -185,6 +218,43 @@ export async function get______________ById(
     return { data: result, error: null };
   } catch (error: any) {
     logger.error("Error fetching ______________ by ID: %s", error.stack);
+    return { data: null, error };
+  }
+}
+
+export async function createRouletteGameBackend(
+  rouletteGameData: IRouletteGame
+): Promise<{ data: RouletteGameType | null; error: any | null }> {
+  try {
+    await dbConnect(); // Ensure you connect to the database
+    logger.info("Creating a new roulette game in the database: %o", rouletteGameData);
+
+    // Create a new instance of the RouletteGame model
+    const newGame = new RouletteGame({
+      Name: rouletteGameData.Name,
+      token: rouletteGameData.token,
+      wager: rouletteGameData.wager,
+      colorChoice: rouletteGameData.colorChoice,
+    });
+
+    // Save the new game to the database
+    const savedGame = await newGame.save();
+
+    logger.info("Roulette game created successfully with ID: %s", savedGame._id);
+
+    // Return the data in the format of RouletteGameType
+    const result: RouletteGameType = {
+      id: savedGame._id.toString(),
+      name: savedGame.Name,
+      wager: savedGame.wager,
+      token: savedGame.token,
+      colorChoice: savedGame.colorChoice,
+      status: "created",
+    };
+
+    return { data: result, error: null };
+  } catch (error) {
+    logger.error("Error creating roulette game in MongoDB: %s", error);
     return { data: null, error };
   }
 }

@@ -5,21 +5,14 @@ import {
   CompletedAction,
 } from "@solana/actions";
 import { PublicKey } from "@solana/web3.js";
-
-import {
-  ______________Type,
-  CLUSTER_TYPES,
-  I______________,
-  VERIFIED_CURRENCY,
-} from "@/common/types";
+import { RouletteGameType, CLUSTER_TYPES, IRouletteGame, VERIFIED_CURRENCY } from "@/common/types";
 import logger from "@/common/logger";
 import { getRequestParam } from "@/common/helper/getParams";
 import { GenericError } from "@/common/helper/error";
-import { create______________ } from "@/common/utils/api.util";
+import { createRouletteGame } from "@/common/utils/api.util";
 import { StatusCodes } from "http-status-codes";
 import { jsonResponse, Promisify } from "@/common/helper/responseMaker";
 
-// create the standard headers for this route (including CORS)
 const headers = createActionHeaders();
 
 export const GET = async (req: Request) => {
@@ -28,24 +21,18 @@ export const GET = async (req: Request) => {
     headers,
   });
 };
+
 export const OPTIONS = async () => Response.json(null, { headers });
 
 export const POST = async (req: Request) => {
   try {
-    /////////////////////////////////////
-    /////////Extract Params//////////////
-    /////////////////////////////////////
     const requestUrl = new URL(req.url);
     const clusterurl = getRequestParam<CLUSTER_TYPES>(requestUrl, "clusterurl");
     const name = getRequestParam<string>(requestUrl, "name");
     const token = getRequestParam<VERIFIED_CURRENCY>(requestUrl, "token");
     const wager = getRequestParam<number>(requestUrl, "wager");
-    const startDate = getRequestParam<number>(requestUrl, "startDate");
-    const endDate = getRequestParam<number>(requestUrl, "endDate");
-
-    /////////////////////////////////////
-    /////////Extract Account/////////////
-    /////////////////////////////////////
+    const colorChoice = getRequestParam<string>(requestUrl, "colorChoice") as "RED" | "BLUE";
+    logger.info("1");
     const body: NextActionPostRequest = await req.json();
     let account: PublicKey;
     try {
@@ -53,6 +40,7 @@ export const POST = async (req: Request) => {
     } catch {
       throw new GenericError("Invalid account provided", StatusCodes.BAD_REQUEST);
     }
+    logger.info("2");
 
     let signature: string;
     try {
@@ -61,30 +49,33 @@ export const POST = async (req: Request) => {
     } catch (err) {
       throw new GenericError('Invalid "signature" provided', StatusCodes.BAD_REQUEST);
     }
-    /////////////////////////////////////
-    ///////////Parse Phase///////////////
-    /////////////////////////////////////
-    const ______________Json: I______________ = {
-      Name: name,
-    };
-    const ______________ = await Promisify<______________Type>(
-      create______________(clusterurl, ______________Json),
-    );
-    const basicUrl =
-      process.env.IS_PROD === "prod"
-        ? "https://join.catoff.xyz" // TODO: edit link here
-        : new URL(req.url).origin;
-    const icons = {
-      name: new URL("/name.png", basicUrl).toString(), // TODO: edit link here
-    };
 
-    const message = `Your ______________ has been created successfully!\nJoin with blink: https://dial.to/?action=solana-action%3Ahttps%3A%2F%2F{LINK}%2Fapi%2Factions%2F{______________}%3Fclusterurl%3D${clusterurl}%26{______________ID}%3D{______________.ID}&cluster=${clusterurl}`; // TODO: edit link here
-    logger.info(`[Create ______________ next action] final response: ${message}`);
+    const rouletteGameData: IRouletteGame = {
+      Name: name,
+      token,
+      wager,
+      colorChoice,
+    };
+    logger.info("3");
+
+    const rouletteGame = await Promisify<RouletteGameType>(createRouletteGame(clusterurl, rouletteGameData));
+
+    // const basicUrl = process.env.IS_PROD === "prod"
+    //   ? "http://localhost:3000" 
+    //   : new URL(req.url).origin;
+      
+    // const icons = {
+    //   name: new URL("/roulette.jpeg", basicUrl).toString(),
+    // };
+
+    const message = `Your roulette game has been created successfully! Join using blink: https://dial.to/?action=solana-action%3Ahttps%3A%2F%2F{LINK}%2Fapi%2Factions%2F${rouletteGame.id}?clusterurl=${clusterurl}&gameId=${rouletteGame.id}`;
+    logger.info(`[Create Roulette Game next action] final response: ${message}`);
+    
     const payload: CompletedAction = {
       type: "completed",
-      title: "Your ______________ has been created successfully!",
-      icon: icons.name,
-      label: "Catoff ______________ Created",
+      title: "Your roulette game has been created successfully!",
+      icon: "roulette.jpeg",
+      label: "Roulette Game Created",
       description: message,
     };
 
