@@ -56,7 +56,8 @@ export const GET = async (req: Request) => {
 
     const href = clusterurl
       ? `/api/actions/create-roulette?clusterurl=${clusterurl}&name={name}&token={token}&wager={wager}&colorChoice={colorChoice}`
-      : `/api/actions/create-roulette?clusterurl={clusterurl}&name={name}&token={token}&wager={wager}&colorChoice={colorChoice}`;
+      : `/api/actions/create-roulette?clusterurl={clusterurl}&name={name}&token={token}&wager={wager}&colorChoice={colorChoice}`;  
+    // const href = `/api/actions/create-roulette?clusterurl=${clusterurl}&name={name}&token={token}&wager={wager}&colorChoice={colorChoice}`;
 
     const actions: LinkedAction[] = [
       {
@@ -126,9 +127,21 @@ export const POST = async (req: Request) => {
     logger.info("POST request received to initiate a roulette game");
 
     // Retrieve and validate parameters
-    const clusterurl = getRequestParam<CLUSTER_TYPES>(requestUrl, "clusterurl", false);
+    const clusterurl = getRequestParam<CLUSTER_TYPES>(
+      requestUrl,
+      "clusterurl",
+      false,
+      Object.values(CLUSTER_TYPES),
+      CLUSTER_TYPES.DEVNET,
+    );
     const name = getRequestParam<string>(requestUrl, "name", true);
-    const token = getRequestParam<VERIFIED_CURRENCY>(requestUrl, "token", true);
+    const token = getRequestParam<VERIFIED_CURRENCY>(
+      requestUrl,
+      "token",
+      true,
+      Object.values(VERIFIED_CURRENCY),
+      VERIFIED_CURRENCY.SOL,
+    );
     const wager = getRequestParam<number>(requestUrl, "wager", true);
     validateParameters("wager", wager > 0, "Wager must be greater than zero");
     const colorChoice = getRequestParam<string>(requestUrl, "colorChoice", true) as "RED" | "BLUE";
@@ -157,7 +170,6 @@ export const POST = async (req: Request) => {
       cluster: clusterurl,
     };
     const tx = await createTransaction(createTx);
-
     const { blockhash } = await connection.getLatestBlockhash();
     const transaction = new web3.Transaction({
       recentBlockhash: blockhash,
@@ -168,14 +180,25 @@ export const POST = async (req: Request) => {
     logger.info(`Redirecting to next action at: ${href}`);
 
     // Create response payload
-    const payload: ActionPostResponse = await createPostResponse({
-      fields: {
-        type: "transaction",
-        transaction,
-        message: "Initiate Roulette Game",
-        links: { next: { type: "post", href } },
-      },
-    });
+    let payload: ActionPostResponse;
+    try {
+      payload = await createPostResponse({
+        fields: {
+          type: "transaction",
+          transaction,
+          message: "Initiate Roulette Game",
+          links: { 
+            next: { 
+              type: "post", 
+              href
+            } 
+          },
+        },
+      });
+    } catch (err) {
+      logger.error("Error in createPostResponse:", err);
+      return jsonResponse({ error: "Failed to create post response" }, StatusCodes.INTERNAL_SERVER_ERROR, headers);
+    }
 
     logger.info("Response payload created successfully");
     return jsonResponse(payload, StatusCodes.OK, headers);

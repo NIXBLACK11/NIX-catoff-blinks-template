@@ -32,7 +32,6 @@ export const POST = async (req: Request) => {
     const token = getRequestParam<VERIFIED_CURRENCY>(requestUrl, "token");
     const wager = getRequestParam<number>(requestUrl, "wager");
     const colorChoice = getRequestParam<string>(requestUrl, "colorChoice") as "RED" | "BLUE";
-    logger.info("1");
     const body: NextActionPostRequest = await req.json();
     let account: PublicKey;
     try {
@@ -40,7 +39,6 @@ export const POST = async (req: Request) => {
     } catch {
       throw new GenericError("Invalid account provided", StatusCodes.BAD_REQUEST);
     }
-    logger.info("2");
 
     let signature: string;
     try {
@@ -56,9 +54,7 @@ export const POST = async (req: Request) => {
       wager,
       colorChoice,
     };
-    logger.info("3");
-
-    const rouletteGame = await Promisify<RouletteGameType>(createRouletteGame(clusterurl, rouletteGameData));
+    const rouletteGame = await Promisify<RouletteGameType>(createRouletteGame(clusterurl, account, rouletteGameData));
 
     // const basicUrl = process.env.IS_PROD === "prod"
     //   ? "http://localhost:3000" 
@@ -68,17 +64,17 @@ export const POST = async (req: Request) => {
     //   name: new URL("/roulette.jpeg", basicUrl).toString(),
     // };
 
-    const message = `Your roulette game has been created successfully! Join using blink: https://dial.to/?action=solana-action%3Ahttps%3A%2F%2F{LINK}%2Fapi%2Factions%2F${rouletteGame.id}?clusterurl=${clusterurl}&gameId=${rouletteGame.id}`;
+    const message = `Your roulette game has been created successfully! Join using blink: [https%3A%2F%2Fdial.to%2F%3Faction%3Dsolana-action%3Ahttps%3A%2F%2Flocalhost%3A3000%2Fapi%2Factions%2Fjoin-game%3Fclusterurl%3D${clusterurl}%26gameId%3D${rouletteGame.id}%26name%3D${rouletteGame.name}]`;
     logger.info(`[Create Roulette Game next action] final response: ${message}`);
     
     const payload: CompletedAction = {
       type: "completed",
+      icon: new URL("/roulette.jpeg", requestUrl.origin).toString(),
       title: "Your roulette game has been created successfully!",
-      icon: "roulette.jpeg",
-      label: "Roulette Game Created",
       description: message,
+      label: "Roulette Game Created",
     };
-
+    console.log(payload)
     return jsonResponse(payload, StatusCodes.OK, headers);
   } catch (err) {
     logger.error(err);
