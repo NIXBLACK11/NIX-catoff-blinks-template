@@ -56,20 +56,13 @@ export const POST = async (req: Request) => {
     };
     const rouletteGame = await Promisify<RouletteGameType>(createRouletteGame(clusterurl, account, rouletteGameData));
 
-    // const basicUrl = process.env.IS_PROD === "prod"
-    //   ? "http://localhost:3000" 
-    //   : new URL(req.url).origin;
-      
-    // const icons = {
-    //   name: new URL("/roulette.jpeg", basicUrl).toString(),
-    // };
-
-    const message = `Your roulette game has been created successfully! Join using blink: [https%3A%2F%2Fdial.to%2F%3Faction%3Dsolana-action%3Ahttps%3A%2F%2Flocalhost%3A3000%2Fapi%2Factions%2Fjoin-game%3Fclusterurl%3D${clusterurl}%26gameId%3D${rouletteGame.id}%26name%3D${rouletteGame.name}]`;
+    const message = `Your roulette game has been created successfully! Join using blink: [http://localhost:3000/api/actions/join-roulette?gameId=${rouletteGame.id}&name=${rouletteGame.name}&clusterurl=${clusterurl}]`
+    // const message = `Your roulette game has been created successfully! Join using blink: [https%3A%2F%2Fdial.to%2F%3Faction%3Dsolana-action%3Ahttps%3A%2F%2Flocalhost%3A3000%2Fapi%2Factions%2Fjoin-roulette%3FgameId%3D${rouletteGame.id}%26name%3D${rouletteGame.name}]`;
     logger.info(`[Create Roulette Game next action] final response: ${message}`);
     
     const payload: CompletedAction = {
       type: "completed",
-      icon: new URL("/roulette.jpeg", requestUrl.origin).toString(),
+      icon: new URL("/roulette.gif", requestUrl.origin).toString(),
       title: "Your roulette game has been created successfully!",
       description: message,
       label: "Roulette Game Created",

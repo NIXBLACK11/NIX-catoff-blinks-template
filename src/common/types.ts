@@ -429,6 +429,7 @@ export interface IWeb3Participate {
 export enum ONCHAIN_PARTICIPATE_TYPE {
   JOIN_CHALLENGE = "joinChallenge",
   SIDE_BET = "sideBet",
+  JOIN_GAME = "JOIN_GAME",
 }
 
 export interface IGetTxObject extends IWeb3Participate {
@@ -543,4 +544,35 @@ export interface I______________ById {
   Media: string;
   Currency: VERIFIED_CURRENCY;
   Wager: number;
+}
+
+export interface IGameById {
+  id: string;           
+  name: string;        
+  token: string;     
+  wager: number;      
+  player1ColorChoice: string;
+  player2ColorChoice: string;
+  player1Account: string;
+  player2Account: string;
+  clusterurl: string;
+  winner: string;
+}
+
+export interface SecondPlayer {
+  player2ColorChoice: string;
+  player2Account: string;
+}
+
+export interface FullGameById {
+  id: string;
+  name: string;        
+  token: string;     
+  wager: number;      
+  player1ColorChoice: string;
+  player2ColorChoice: string;
+  player1Account: string;
+  player2Account: string;
+  clusterurl: string;
+  winner: string;
 }

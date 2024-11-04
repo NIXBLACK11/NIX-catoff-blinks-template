@@ -6,87 +6,87 @@ import {
   createActionHeaders,
   ActionError,
   LinkedAction,
-  ActionParameterSelectable,
 } from "@solana/actions";
-import * as web3 from "@solana/web3.js";
-import { PublicKey } from "@solana/web3.js";
-import { StatusCodes } from "http-status-codes";
-
-import { initWeb3 } from "@/common/helper/helper";
-import { CLUSTER_TYPES, IRouletteGame, VERIFIED_CURRENCY } from "@/common/types";
-import { ONCHAIN_CONFIG } from "@/common/helper/cluster.helper";
-import { getRequestParam, validateParameters } from "@/common/helper/getParams";
-import { GenericError } from "@/common/helper/error";
+import { PublicKey, Transaction } from "@solana/web3.js";
 import logger from "@/common/logger";
-import { jsonResponse } from "@/common/helper/responseMaker";
+import { BN, web3 } from "@coral-xyz/anchor";
+import {
+  CLUSTER_TYPES,
+  IGameById,
+  IGetTxObject,
+  ONCHAIN_PARTICIPATE_TYPE,
+  VERIFIED_CURRENCY,
+} from "@/common/types";
+import { getRequestParam, validateParameters } from "@/common/helper/getParams";
+import { ONCHAIN_CONFIG } from "@/common/helper/cluster.helper";
+import { getGameById } from "@/common/utils/api.util";
+import { jsonResponse, Promisify } from "@/common/helper/responseMaker";
+import { StatusCodes } from "http-status-codes";
+import { GenericError } from "@/common/helper/error";
+import { getTxObject, initWeb3, parseToPrecision, tokenAccounts } from "@/common/helper/helper";
 import { createTransaction } from "@/common/helper/transaction.helper";
 
-// Define headers for CORS and other settings
+// Create standard headers for the route (including CORS)
 const headers = createActionHeaders();
 
 export const GET = async (req: Request) => {
   try {
-    logger.info("GET request received for creating a roulette game");
+    logger.info("GET request received");
 
-    // Extract query parameters
+    /////////////////////////////////////
+    ///////// Extract Params ////////////
+    /////////////////////////////////////
     const requestUrl = new URL(req.url);
-    const clusterurl = getRequestParam<CLUSTER_TYPES>(requestUrl, "clusterurl", false);
+    const gameId = getRequestParam<string>(requestUrl, "gameId", false);
+    const clusterurl = getRequestParam<CLUSTER_TYPES>(
+      requestUrl,
+      "clusterurl",
+      false,
+      Object.values(CLUSTER_TYPES),
+      CLUSTER_TYPES.DEVNET,
+    );
+    const name = getRequestParam<String>(requestUrl, "name");
 
-    const clusterOptions: ActionParameterSelectable<"radio">[] = clusterurl
-      ? []
-      : [
-          {
-            name: "clusterurl",
-            label: "Select Cluster",
-            type: "radio",
-            required: true,
-            options: [
-              {
-                label: "Devnet",
-                value: CLUSTER_TYPES.DEVNET,
-                selected: true,
-              },
-              // {
-              //   label: "Mainnet",
-              //   value: CLUSTER_TYPES.MAINNET,
-              // },
-            ],
-          },
-        ];
+    const gameData = await getGameById(clusterurl, gameId);
+    if(!gameData) {
+      throw 'Error fetching game';
+    }
+
+    if (gameData.player2Account !== "" || gameData.player2ColorChoice !== "") {
+      // If the game is full, return a response early
+      const payload: ActionGetResponse = {
+        title: `Join Roulette Game ${name}`,
+        icon: new URL("/roulette.gif", requestUrl.origin).toString(),
+        type: "action",
+        description: `This game has been completed, ${gameData.winner} was the color!!`,
+        label: "Game Already Full",
+        links: { actions: [] },
+      };
+  
+      logger.info("Game already full, returning early.");
+      return jsonResponse(payload, StatusCodes.OK, headers);
+    }
+
+    const wager = gameData.wager;
+    const token = gameData.token;
+
+    if (wager === undefined || token === undefined) {
+      throw new Error("Wager or Token property is missing in gameData");
+    }
+
+    logger.info(`Wager: ${wager}, Token: ${token}`);
 
     const href = clusterurl
-      ? `/api/actions/create-roulette?clusterurl=${clusterurl}&name={name}&token={token}&wager={wager}&colorChoice={colorChoice}`
-      : `/api/actions/create-roulette?clusterurl={clusterurl}&name={name}&token={token}&wager={wager}&colorChoice={colorChoice}`;  
+      ? `/api/actions/join-roulette?clusterurl=${clusterurl}&gameId=${gameId}&colorChoice={colorChoice}&wager=${wager}`
+      : `/api/actions/join-roulette?clusterurl={clusterurl}&gameId={gameId}&colorChoice={colorChoice}&wager={wager}`;  
     // const href = `/api/actions/create-roulette?clusterurl=${clusterurl}&name={name}&token={token}&wager={wager}&colorChoice={colorChoice}`;
 
     const actions: LinkedAction[] = [
       {
         type: "transaction",
-        label: "Create a Roulette Game",
+        label: `Join Game with ${gameData.wager}${gameData.token}`,
         href,
         parameters: [
-          ...clusterOptions,
-          {
-            name: "name",
-            label: "Name your game",
-            required: true,
-          },
-          {
-            name: "token",
-            label: "Choose token",
-            type: "radio",
-            required: true,
-            options: [
-              { label: VERIFIED_CURRENCY.SOL, value: VERIFIED_CURRENCY.SOL, selected: true },
-              { label: VERIFIED_CURRENCY.USDC, value: VERIFIED_CURRENCY.USDC },
-              { label: VERIFIED_CURRENCY.BONK, value: VERIFIED_CURRENCY.BONK },
-            ],
-          },
-          {
-            name: "wager",
-            label: "Set wager amount",
-            required: true,
-          },
           {
             name: "colorChoice",
             label: "Choose your color",
@@ -102,19 +102,19 @@ export const GET = async (req: Request) => {
     ];
 
     const payload: ActionGetResponse = {
-      title: "Create a Roulette Game",
+      title: `Join Roulette Game ${name}`,
       icon: new URL("/roulette.gif", requestUrl.origin).toString(),
       type: "action",
-      description: "Initiate a new roulette game with your desired parameters",
-      label: "Create Roulette Game",
+      description: "Join a roulette game",
+      label: `Join Game ${name}`,
       links: { actions },
     };
 
     logger.info("Payload constructed successfully: %o", payload);
     return jsonResponse(payload, StatusCodes.OK, headers);
-  } catch (err) {
+  } catch (err: any) {
     logger.error("An error occurred in GET handler: %s", err);
-    const actionError: ActionError = { message: "An unknown error occurred" };
+    const actionError: ActionError = { message: 'Unknown error occurred' };
     return jsonResponse(actionError, StatusCodes.BAD_REQUEST, headers);
   }
 };
@@ -124,7 +124,7 @@ export const OPTIONS = async () => Response.json(null, { headers });
 export const POST = async (req: Request) => {
   try {
     const requestUrl = new URL(req.url);
-    logger.info("POST request received to initiate a roulette game");
+    logger.info("POST request received to join a roulette game");
 
     // Retrieve and validate parameters
     const clusterurl = getRequestParam<CLUSTER_TYPES>(
@@ -134,18 +134,11 @@ export const POST = async (req: Request) => {
       Object.values(CLUSTER_TYPES),
       CLUSTER_TYPES.DEVNET,
     );
-    const name = getRequestParam<string>(requestUrl, "name", true);
-    const token = getRequestParam<VERIFIED_CURRENCY>(
-      requestUrl,
-      "token",
-      true,
-      Object.values(VERIFIED_CURRENCY),
-      VERIFIED_CURRENCY.SOL,
-    );
+    const gameId = getRequestParam<string>(requestUrl, "gameId", true);
     const wager = getRequestParam<number>(requestUrl, "wager", true);
     validateParameters("wager", wager > 0, "Wager must be greater than zero");
     const colorChoice = getRequestParam<string>(requestUrl, "colorChoice", true) as "RED" | "BLUE";
-
+    
     // Extract and validate account from body
     const body: ActionPostRequest = await req.json();
     let account: PublicKey;
@@ -176,7 +169,7 @@ export const POST = async (req: Request) => {
       feePayer: account,
     }).add(...tx);
 
-    const href = `/api/actions/create-roulette/next-action?clusterurl=${clusterurl}&name=${name}&token=${token}&wager=${wager}&colorChoice=${colorChoice}`;
+    const href = `/api/actions/join-roulette/next-action?clusterurl=${clusterurl}&colorChoice=${colorChoice}&gameId=${gameId}`;
     logger.info(`Redirecting to next action at: ${href}`);
 
     // Create response payload
@@ -186,7 +179,7 @@ export const POST = async (req: Request) => {
         fields: {
           type: "transaction",
           transaction,
-          message: "Initiate Roulette Game",
+          message: "Join Roulette Game",
           links: { 
             next: { 
               type: "post", 

@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { IRouletteGame } from "@/common/types";
-import { createRouletteGameBackend } from "@/common/utils/api.util";
 import logger from "@/common/logger";
 import { StatusCodes } from "http-status-codes";
+import { createRouletteGameBackend } from "@/common/utils/dbFunctions";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { Name, token, wager, colorChoice } = body;
+    const { clusterurl, account, rouletteGameData } = body; // Adjust this line
+    const { Name, token, wager, colorChoice } = rouletteGameData; // Adjust this line as well
 
+    // Validate input data
     if (!Name || !token || typeof wager !== "number" || !["RED", "BLUE"].includes(colorChoice)) {
       return NextResponse.json(
         { message: "Invalid input data" },
@@ -16,16 +18,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rouletteGameData: IRouletteGame = {
-      Name,
-      token,
-      wager,
-      colorChoice,
-    };
-
-    const rouletteGame = await createRouletteGameBackend(rouletteGameData);
-
-    if (!rouletteGame || rouletteGame.error) {
+    // Prepare roulette game data
+    const rouletteGameDataValidated: IRouletteGame = { Name, token, wager, colorChoice };
+    
+    // Create the roulette game in the backend
+    const rouletteGame = await createRouletteGameBackend(rouletteGameDataValidated, clusterurl, account);
+    logger.info("Roulette game creation response: %o", rouletteGame);
+    // Check for errors in the response
+    if (!rouletteGame.data || rouletteGame.error) {
       logger.error("Failed to create roulette game in the backend: %o", rouletteGame.error);
       return NextResponse.json(
         { message: "Failed to create roulette game" },
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Return success response with game details
     return NextResponse.json(
       {
         message: "Roulette game created successfully",

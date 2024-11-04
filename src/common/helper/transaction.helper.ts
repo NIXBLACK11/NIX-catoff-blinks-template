@@ -6,11 +6,12 @@ import {
 } from "@solana/spl-token";
 import { BN } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
+import * as dotenv from "dotenv";
 
 import { ONCHAIN_CONFIG } from "./cluster.helper";
 import logger from "@/common/logger";
-import { ICreateTransaction, VERIFIED_CURRENCY } from "../types";
-import { parseToPrecision } from "./helper";
+import { CLUSTER_TYPES, ICreateTransaction, VERIFIED_CURRENCY } from "../types";
+import { initWeb3, parseToPrecision } from "./helper";
 
 // Helper function to handle SOL and token transactions
 export async function createTransaction(
@@ -93,5 +94,59 @@ async function getMintPublicKeyForCurrency(
       return ONCHAIN_CONFIG[cluster].sendMintAddress;
     default:
       throw new Error(`Unsupported currency: ${currency}`);
+  }
+}
+
+export async function transferFromTreasuryToWinner(winnerAddress: string, amount: number, clusterurl: CLUSTER_TYPES) {
+  let recipientPublicKey;
+  try {
+    recipientPublicKey = new PublicKey(winnerAddress);
+    logger.info(`Winner PublicKey validated: ${recipientPublicKey.toString()}`);
+  } catch (err) {
+    logger.error(`Invalid winner public key: ${winnerAddress}`);
+    throw new Error("Invalid winner public key");
+  }
+
+  const { connection } = await initWeb3(clusterurl);
+  const treasuryAddr = ONCHAIN_CONFIG[clusterurl].treasuryWallet;
+  const treasuryPublicKey = new PublicKey(treasuryAddr);
+
+  // Read and decode the base64 private key from the environment variable
+  const base64PrivateKey = process.env.GAME_WALLET_PRIVATE_KEY;
+  if (!base64PrivateKey) {
+    throw new Error("GAME_WALLET_PRIVATE_KEY is not defined in the .env.local file");
+  }
+
+  // Decode the base64 string into a Uint8Array for the Keypair
+  const privateKeyArray = Uint8Array.from(Buffer.from(base64PrivateKey, "base64"));
+  const treasuryKeypair = web3.Keypair.fromSecretKey(privateKeyArray);
+
+  // Prepare transaction data
+  const createTx = {
+    accountPublicKey: treasuryPublicKey,
+    recipientPublicKey,
+    currency: VERIFIED_CURRENCY.SOL,
+    amount,
+    connection,
+    cluster: clusterurl,
+  };
+
+  // Create the transaction
+  const tx = await createTransaction(createTx);
+  const { blockhash } = await connection.getLatestBlockhash();
+  const transaction = new web3.Transaction({
+    recentBlockhash: blockhash,
+    feePayer: treasuryPublicKey,
+  }).add(...tx);
+
+  // Sign the transaction
+  transaction.sign(treasuryKeypair);
+
+  try {
+    const signature = await web3.sendAndConfirmTransaction(connection, transaction, [treasuryKeypair]);
+    logger.info(`Transaction successful with signature: ${signature}`);
+  } catch (error: any) {
+    logger.error(`Transaction failed: ${error.message}`);
+    throw new Error(`Transaction failed: ${error.message}`);
   }
 }

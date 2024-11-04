@@ -1,7 +1,8 @@
 // utils/dbConnect.ts
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || '';
+// const MONGODB_URI = process.env.MONGODB_URI || '';
+const MONGODB_URI = 'mongodb+srv://NIXBLACK:nixblack11@cluster0.tk5azpj.mongodb.net/roulette';
 
 if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable');

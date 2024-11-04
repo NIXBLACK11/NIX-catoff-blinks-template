@@ -5,18 +5,23 @@ import {
   ______________Type,
   Challenge,
   CLUSTER_TYPES,
+  FullGameById,
   I______________,
   I______________ById,
   IChallengeById,
   ICreateChallenge,
+  IGameById,
   IRouletteGame,
   PARTICIPATION_TYPE,
   ResultWithError,
   RouletteGameType,
+  SecondPlayer,
 } from "@/common/types";
 import { ONCHAIN_CONFIG } from "@/common/helper/cluster.helper";
 import { IGenerateAIDescription } from "./apiReturn.types";
 import dbConnect from "./dbConnect";
+import RouletteGame from "@/models/RouletteGame";
+import { PublicKey } from "@solana/web3.js";
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -168,25 +173,34 @@ export async function create______________(
 
 export async function createRouletteGame(
   clusterurl: CLUSTER_TYPES,
+  account: PublicKey,
   rouletteGameData: IRouletteGame,
 ): Promise<ResultWithError> {
   const baseUrl = ONCHAIN_CONFIG[clusterurl].BackendURL;
   const partnerApiKey = ONCHAIN_CONFIG[clusterurl].partnerApiKey;
 
+  const requestRoute = `${baseUrl}/api/create-roulette-game`;
   try {
     logger.info(
       "Sending request to create roulette game at: %s with data: %o",
-      baseUrl,
+      requestRoute,
       rouletteGameData,
     );
-    const response = await axios.post(`${baseUrl}/create-roulette-game`, rouletteGameData, {
+
+    const data = {
+      clusterurl,
+      account,
+      rouletteGameData,
+    }
+
+    const response = await axios.post(requestRoute, data, {
       headers: {
         "x-api-key": partnerApiKey,
         "Content-Type": "application/json",
       },
       timeout: 100000,
     });
-    const result: RouletteGameType = response.data.data;
+    const result: RouletteGameType = response.data.gameDetails;
     logger.info("Roulette game created successfully: %o", response.data);
     return { data: result, error: null };
   } catch (error: any) {
@@ -222,39 +236,34 @@ export async function get______________ById(
   }
 }
 
-export async function createRouletteGameBackend(
-  rouletteGameData: IRouletteGame
-): Promise<{ data: RouletteGameType | null; error: any | null }> {
+export async function getGameById(clusterurl: CLUSTER_TYPES, gameId: string): Promise<IGameById | null> {
   try {
-    await dbConnect(); // Ensure you connect to the database
-    logger.info("Creating a new roulette game in the database: %o", rouletteGameData);
+    // Define the base API URL based on the cluster type
+    const baseUrl = ONCHAIN_CONFIG[clusterurl].BackendURL;
 
-    // Create a new instance of the RouletteGame model
-    const newGame = new RouletteGame({
-      Name: rouletteGameData.Name,
-      token: rouletteGameData.token,
-      wager: rouletteGameData.wager,
-      colorChoice: rouletteGameData.colorChoice,
-    });
+    // Construct the URL for fetching the game by its ID
+    const url = `${baseUrl}/api/get-roulette-game?gameId=${gameId}`;
 
-    // Save the new game to the database
-    const savedGame = await newGame.save();
+    // Make the API call
+    const response  = await axios.get(url);
+    console.log("This is the reponse"+response);
+    const gameData: IGameById = response.data.gameData;
 
-    logger.info("Roulette game created successfully with ID: %s", savedGame._id);
-
-    // Return the data in the format of RouletteGameType
-    const result: RouletteGameType = {
-      id: savedGame._id.toString(),
-      name: savedGame.Name,
-      wager: savedGame.wager,
-      token: savedGame.token,
-      colorChoice: savedGame.colorChoice,
-      status: "created",
-    };
-
-    return { data: result, error: null };
+    return gameData;
   } catch (error) {
-    logger.error("Error creating roulette game in MongoDB: %s", error);
-    return { data: null, error };
+    console.error(`Error fetching game with ID ${gameId}:`, error);
+    return null;
+  }
+}
+
+export async function getRandomColor(clusterurl: CLUSTER_TYPES): Promise<string> {
+  try {
+    const baseUrl = ONCHAIN_CONFIG[clusterurl].BackendURL;
+    const url = `${baseUrl}/api/random-color`;
+    const response = await axios.get(url);
+    return response.data.color;
+  } catch (error) {
+    console.error("Error fetching random color:", error);
+    throw new Error("Failed to fetch random color");
   }
 }
