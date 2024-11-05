@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 
 export const ONCHAIN_CONFIG = {
   devnet: {
-    BackendURL: "http://localhost:3000",
+    BackendURL: "https://roulette.nixblack.site",
     progId: new PublicKey("CATfsBsU5KLkpug5BzLK3j94Wm7mtCmdss14r4gWdbZz"),
     usdcMintAddress: new PublicKey("usdcjuyqxVrSMiXtn6oDbETAwhJLs6Q5ZxZ2qLqXg9i"),
     bonkMintAddress: new PublicKey("bonkMLw9Gyn4F3dqwxaHgcqLQxvchiYLfjDjEVXCEMf"),
@@ -23,7 +23,7 @@ export const ONCHAIN_CONFIG = {
     xdaresApiKey: process.env.X_DARES_API_KEY_DEVNET,
   },
   mainnet: {
-    BackendURL: "http://localhost:3000",
+    BackendURL: "https://roulette.nixblack.site",
     progId: new PublicKey("CATmfh29bJtF82sXykY4mGB2UWBPB8gVmHn6pX3azLCr"),
     usdcMintAddress: new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
     bonkMintAddress: new PublicKey("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"),
