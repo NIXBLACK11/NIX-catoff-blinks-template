@@ -78,8 +78,8 @@ export const GET = async (req: Request) => {
             required: true,
             options: [
               { label: VERIFIED_CURRENCY.SOL, value: VERIFIED_CURRENCY.SOL, selected: true },
-              { label: VERIFIED_CURRENCY.USDC, value: VERIFIED_CURRENCY.USDC },
-              { label: VERIFIED_CURRENCY.BONK, value: VERIFIED_CURRENCY.BONK },
+              // { label: VERIFIED_CURRENCY.USDC, value: VERIFIED_CURRENCY.USDC },
+              // { label: VERIFIED_CURRENCY.BONK, value: VERIFIED_CURRENCY.BONK },
             ],
           },
           {

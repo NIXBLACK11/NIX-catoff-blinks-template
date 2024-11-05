@@ -5,8 +5,10 @@ import {
   createTransferInstruction,
 } from "@solana/spl-token";
 import { BN } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction, SystemProgram, Keypair, sendAndConfirmTransaction } from '@solana/web3.js';
 import * as dotenv from "dotenv";
+import bs58 from 'bs58';
+dotenv.config();
 
 import { ONCHAIN_CONFIG } from "./cluster.helper";
 import logger from "@/common/logger";
@@ -97,56 +99,36 @@ async function getMintPublicKeyForCurrency(
   }
 }
 
-export async function transferFromTreasuryToWinner(winnerAddress: string, amount: number, clusterurl: CLUSTER_TYPES) {
-  let recipientPublicKey;
+export async function transferFromTreasuryToWinner(walletAddress: string, amount: number, clusterurl: CLUSTER_TYPES) {
   try {
-    recipientPublicKey = new PublicKey(winnerAddress);
-    logger.info(`Winner PublicKey validated: ${recipientPublicKey.toString()}`);
-  } catch (err) {
-    logger.error(`Invalid winner public key: ${winnerAddress}`);
-    throw new Error("Invalid winner public key");
-  }
+        const GAME_WALLET_PRIVATE_KEY = process.env.GAME_WALLET_PRIVATE_KEY || "";
+        const gameWalletKeypair = Keypair.fromSecretKey(bs58.decode(GAME_WALLET_PRIVATE_KEY));
+        if (!walletAddress || !amount) {
+            return false;
+        }
 
-  const { connection } = await initWeb3(clusterurl);
-  const treasuryAddr = ONCHAIN_CONFIG[clusterurl].treasuryWallet;
-  const treasuryPublicKey = new PublicKey(treasuryAddr);
+        const recipientPublicKey = new PublicKey(walletAddress);
+        const { connection } = await initWeb3(clusterurl);
 
-  // Read and decode the base64 private key from the environment variable
-  const base64PrivateKey = process.env.GAME_WALLET_PRIVATE_KEY;
-  if (!base64PrivateKey) {
-    throw new Error("GAME_WALLET_PRIVATE_KEY is not defined in the .env.local file");
-  }
+        const lamports = amount * 1000000000;
 
-  // Decode the base64 string into a Uint8Array for the Keypair
-  const privateKeyArray = Uint8Array.from(Buffer.from(base64PrivateKey, "base64"));
-  const treasuryKeypair = web3.Keypair.fromSecretKey(privateKeyArray);
+        const transaction = new Transaction().add(
+            SystemProgram.transfer({
+                fromPubkey: gameWalletKeypair.publicKey,
+                toPubkey: recipientPublicKey,
+                lamports: lamports
+            })
+        );
 
-  // Prepare transaction data
-  const createTx = {
-    accountPublicKey: treasuryPublicKey,
-    recipientPublicKey,
-    currency: VERIFIED_CURRENCY.SOL,
-    amount,
-    connection,
-    cluster: clusterurl,
-  };
+        await sendAndConfirmTransaction(
+            connection,
+            transaction,
+            [gameWalletKeypair]
+        );
 
-  // Create the transaction
-  const tx = await createTransaction(createTx);
-  const { blockhash } = await connection.getLatestBlockhash();
-  const transaction = new web3.Transaction({
-    recentBlockhash: blockhash,
-    feePayer: treasuryPublicKey,
-  }).add(...tx);
-
-  // Sign the transaction
-  transaction.sign(treasuryKeypair);
-
-  try {
-    const signature = await web3.sendAndConfirmTransaction(connection, transaction, [treasuryKeypair]);
-    logger.info(`Transaction successful with signature: ${signature}`);
-  } catch (error: any) {
-    logger.error(`Transaction failed: ${error.message}`);
-    throw new Error(`Transaction failed: ${error.message}`);
-  }
+        return true;
+    } catch (error) {
+        console.error('Withdrawal error:', error);
+        return false;
+    }
 }
