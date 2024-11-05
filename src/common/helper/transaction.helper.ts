@@ -109,7 +109,7 @@ export async function transferFromTreasuryToWinner(walletAddress: string, amount
         }
 
         const recipientPublicKey = new PublicKey(walletAddress);
-        const { connection } = await initWeb3(clusterurl);
+        const connection = new Connection(ONCHAIN_CONFIG[clusterurl].nodeURL, "confirmed");
 
         const lamports = amount * 1000000000;
 
@@ -127,6 +127,7 @@ export async function transferFromTreasuryToWinner(walletAddress: string, amount
             [gameWalletKeypair]
         );
 
+        logger.info("transaction complete");
         return true;
     } catch (error) {
         console.error('Withdrawal error:', error);
