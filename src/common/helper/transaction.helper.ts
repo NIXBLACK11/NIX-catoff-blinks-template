@@ -101,6 +101,7 @@ async function getMintPublicKeyForCurrency(
 
 export async function transferFromTreasuryToWinner(walletAddress: string, amount: number, clusterurl: CLUSTER_TYPES) {
   try {
+        amount = amount * (95/100);
         const GAME_WALLET_PRIVATE_KEY = process.env.GAME_WALLET_PRIVATE_KEY || "";
         const gameWalletKeypair = Keypair.fromSecretKey(bs58.decode(GAME_WALLET_PRIVATE_KEY));
         if (!walletAddress || !amount) {
