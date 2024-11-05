@@ -62,7 +62,7 @@ export const GET = async (req: Request) => {
     const actions: LinkedAction[] = [
       {
         type: "transaction",
-        label: "Create a Roulette Game",
+        label: "Roulette: The Ultimate High-Stakes Showdown!",
         href,
         parameters: [
           ...clusterOptions,
@@ -102,10 +102,10 @@ export const GET = async (req: Request) => {
     ];
 
     const payload: ActionGetResponse = {
-      title: "Create a Roulette Game",
+      title: "Roulette: The Ultimate High-Stakes Showdown!",
       icon: new URL("/roulette.gif", requestUrl.origin).toString(),
       type: "action",
-      description: "Initiate a new roulette game with your desired parameters",
+      description: `Challenge your friends, rivals, or anyone on X to a thrilling game of roulette—with stakes you set!\nPlayer 1, place your wager and spin the wheel to get started. Once your game is created, you’ll receive a unique link to share with Player 2. Let the bets roll in and may the odds be in your favor!`,
       label: "Create Roulette Game",
       links: { actions },
     };

@@ -102,10 +102,10 @@ export const GET = async (req: Request) => {
     ];
 
     const payload: ActionGetResponse = {
-      title: `Join Roulette Game ${name}`,
+      title: `Ready to Take a Spin? Join the High-Stakes Roulette Showdown! Join ${name}`,
       icon: new URL("/roulette.gif", requestUrl.origin).toString(),
       type: "action",
-      description: "Join a roulette game",
+      description: "Player 1 has set the stage and placed their wager. Now it’s your turn! Click the link to join the game, place your bet, and let the wheel decide who takes it all. Will luck be on your side? Dive in and find out!",
       label: `Join Game ${name}`,
       links: { actions },
     };
