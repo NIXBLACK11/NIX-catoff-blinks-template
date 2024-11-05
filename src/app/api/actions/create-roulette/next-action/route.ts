@@ -56,7 +56,7 @@ export const POST = async (req: Request) => {
     };
     const rouletteGame = await Promisify<RouletteGameType>(createRouletteGame(clusterurl, account, rouletteGameData));
 
-    const message = `Your roulette game has been created successfully! Join using blink: [https://roulette.nixblack.site/api/actions/join-roulette?gameId=${rouletteGame.id}&name=${rouletteGame.name}&clusterurl=${clusterurl}]`
+    const message = `Your roulette game has been created successfully! Join using blink: [https://dial.to/?action=solana-action:https://roulette.nixblack.site/api/actions/join-roulette?gameId=${rouletteGame.id}&name=${rouletteGame.name}&clusterurl=${clusterurl}]`
     // const message = `Your roulette game has been created successfully! Join using blink: [https%3A%2F%2Fdial.to%2F%3Faction%3Dsolana-action%3Ahttps%3A%2F%2Flocalhost%3A3000%2Fapi%2Factions%2Fjoin-roulette%3FgameId%3D${rouletteGame.id}%26name%3D${rouletteGame.name}]`;
     logger.info(`[Create Roulette Game next action] final response: ${message}`);
     
