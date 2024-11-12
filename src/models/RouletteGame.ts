@@ -1,4 +1,3 @@
-// models/RouletteGame.ts
 import { CLUSTER_TYPES } from '@/common/types';
 import { PublicKey } from '@solana/web3.js';
 import mongoose, { Document, Schema } from 'mongoose';
